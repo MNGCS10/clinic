@@ -959,7 +959,10 @@
                 card.className = "bg-white rounded-3xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition group flex flex-col";
                 card.innerHTML = `
                     <div class="h-40 bg-gray-200 bg-cover bg-center relative" style="background-image: url('${news.image_url || 'https://via.placeholder.com/300x150'}')">
-                        <button onclick="deleteNews(${news.id})" class="absolute top-3 right-3 bg-white/80 p-2 rounded-full text-red-500 hover:bg-white transition shadow-sm opacity-0 group-hover:opacity-100"><i class="fa-solid fa-trash-can"></i></button>
+                       <div class="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                            <button onclick='editNews(${news.id}, "${encodeURIComponent(JSON.stringify(news))}")' class="bg-white/80 p-2 rounded-full text-blue-500 hover:bg-white shadow-sm"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteNews(${news.id})" class="bg-white/80 p-2 rounded-full text-red-500 hover:bg-white shadow-sm"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
                     </div>
                     <div class="p-5 flex-1 flex flex-col">
                         <h3 class="font-bold text-brand-coffee text-lg truncate">${news.title}</h3>
@@ -1074,6 +1077,42 @@
         async function deleteNews(id) {
             const result = await Swal.fire({ title: 'ยืนยันลบ?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444' });
             if (result.isConfirmed) { await supabaseClient.from('news').delete().eq('id', id); fetchNews(); }
+        }
+
+        async function editNews(id, newsStr) {
+            const news = JSON.parse(decodeURIComponent(newsStr));
+            const { value: formValues } = await Swal.fire({
+                title: 'แก้ไขข่าวสาร',
+                html: `
+                    <div class="text-left space-y-3">
+                        <div><label class="text-sm font-bold text-gray-600">หัวข้อข่าว</label>
+                        <input id="edit-news-title" class="w-full p-2 border rounded-lg" value="${news.title || ''}"></div>
+                        <div><label class="text-sm font-bold text-gray-600">รายละเอียด</label>
+                        <textarea id="edit-news-detail" class="w-full p-2 border rounded-lg" rows="3">${news.detail || ''}</textarea></div>
+                        <div><label class="text-sm font-bold text-gray-600">URL รูปภาพ</label>
+                        <input id="edit-news-img" class="w-full p-2 border rounded-lg" value="${news.image_url || ''}"></div>
+                    </div>`,
+                showCancelButton: true,
+                confirmButtonText: 'บันทึกการแก้ไข',
+                confirmButtonColor: '#2660a4',
+                cancelButtonText: 'ยกเลิก',
+                preConfirm: () => {
+                    const title = document.getElementById('edit-news-title').value;
+                    if (!title) { Swal.showValidationMessage('กรุณาระบุหัวข้อข่าว'); return false; }
+                    return {
+                        title: title,
+                        detail: document.getElementById('edit-news-detail').value,
+                        image_url: document.getElementById('edit-news-img').value
+                    }
+                }
+            });
+    
+            if (formValues) {
+                Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+                const { error } = await supabaseClient.from('news').update(formValues).eq('id', id);
+                if (!error) { Toast.fire({ icon: 'success', title: 'แก้ไขข่าวเรียบร้อย' }); fetchNews(); }
+                else { Swal.fire('Error', error.message, 'error'); }
+            }
         }
 
         const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, didOpen: (toast) => { toast.addEventListener('mouseenter', Swal.stopTimer); toast.addEventListener('mouseleave', Swal.resumeTimer); } });

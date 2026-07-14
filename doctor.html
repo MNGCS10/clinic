@@ -173,7 +173,7 @@
         //const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlleHJtZWlkd2VkYXpiaWFpYXp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5NTUzMjEsImV4cCI6MjA5OTUzMTMyMX0.mABokSstxoizRDKK_UFCL6Zd52AqxfjSolKglWxokNk";
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+        const hideLoader = () => document.getElementById('loader').classList.add('hidden-opacity');
         
         let currentDoctorId = null;
         let currentAppointments = [];
@@ -217,6 +217,7 @@
                     .single();
 
                 if (profileError || !userProfile || userProfile.role !== 'doctor') {
+                    hideLoader();  // ← เพิ่ม
                     Swal.fire({
                         icon: 'error',
                         title: 'Access Denied',
@@ -235,6 +236,7 @@
                     .single();
 
                 if (docError || !doctorData) {
+                    hideLoader();  // ← เพิ่ม
                     Swal.fire('Error', 'ไม่พบข้อมูลแพทย์ที่เชื่อมโยงกับบัญชี LINE นี้ กรุณาติดต่อ Admin', 'error');
                     return;
                 }
@@ -260,6 +262,7 @@
 
             } catch (err) {
                 console.error("Init Error:", err);
+                hideLoader();  // ← เพิ่ม
                 Swal.fire('Error', 'เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
             }
         }

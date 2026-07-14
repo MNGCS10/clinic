@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Clinic Admin System</title>
+    <link id="favicon" rel="icon" href="https://cdn-icons-png.flaticon.com/128/169/169869.png">
+    <link id="apple-touch-icon" rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/128/169/169869.png">
+    <meta name="description" content="Clinic Admin for MINI App" />
+    <meta name="author" content="iton5" />
+    <meta property="og:title" content="Clinic Admin-iton5-thailand" />
+    <meta property="og:description" content="Clinic Admin for MINI App" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://cdn-icons-png.flaticon.com/128/169/169869.png" />
+
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#2660a4',
+                            mint: '#edf7f6',
+                            orange: '#f19953',
+                            bronze: '#c47335',
+                            coffee: '#56351e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap');
+
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+
+        .sidebar-transition {
+            transition: transform 0.3s ease-in-out;
+        }
+
+
+        @media (max-width: 768px) {
+            .responsive-table thead {
+                display: none;
+            }
+
+            .responsive-table tbody tr {
+                display: flex;
+                flex-direction: column;
+                margin-bottom: 1rem;
+                border: 1px solid #e5e7eb;
+                border-radius: 1rem;
+                background: white;
+                padding: 1rem;
+                box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            }
+
+            .responsive-table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.75rem 0;
+                border-bottom: 1px dashed #f3f4f6;
+                width: 100%;
+            }
+
+            .responsive-table td:last-child {
+                border-bottom: none;
+                padding-bottom: 0;
+            }
+
+            .responsive-table td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: #6b7280;
+                font-size: 0.875rem;
+                margin-right: 1rem;
+            }
+        }
+
+
+        #auth-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #2660a4;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            transition: opacity 0.5s, visibility 0.5s;
+        }
+
+        .hidden-opacity {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+
+        .nav-active {
+            background-color: rgba(255, 255, 255, 0.2) !important;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body class="flex h-screen overflow-hidden bg-brand-mint">
+
+
+    <div id="auth-loader">
+        <i class="fa-solid fa-circle-notch fa-spin text-5xl mb-4"></i>
+        <h2 class="text-xl font-bold">กำลังตรวจสอบสิทธิ์...</h2>
+        <p class="text-sm opacity-80 mt-2">Clinic Admin System</p>
+    </div>
+
+
+    <div id="mobile-backdrop" onclick="toggleSidebar()"
+        class="fixed inset-0 bg-black/50 z-40 hidden md:hidden transition-opacity duration-300"></div>
+
+
+    <aside id="sidebar"
+        class="sidebar-transition fixed inset-y-0 left-0 z-50 w-64 bg-brand-blue text-white shadow-xl transform -translate-x-full md:relative md:translate-x-0 flex flex-col flex-shrink-0">
+        <div class="p-6 border-b border-white/10 flex justify-between items-center bg-[#1e4d85]">
+            <h1 class="text-2xl font-bold tracking-wide">Clinic Admin</h1>
+            <button onclick="toggleSidebar()" class="md:hidden text-white hover:text-brand-orange transition"><i
+                    class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+
+        <div class="p-4 flex-1 overflow-y-auto">
+
+            <div id="admin-profile" class="mb-6 p-4 bg-white/10 rounded-2xl flex items-center gap-3 backdrop-blur-sm">
+                <img id="sidebar-img" src="https://cdn-icons-png.flaticon.com/128/169/169869.png"
+                    class="w-10 h-10 rounded-full border-2 border-brand-orange object-cover bg-gray-300">
+                <div class="overflow-hidden">
+                    <p id="sidebar-name" class="font-bold truncate text-sm">ผู้ดูแลระบบ</p>
+                    <span class="text-[10px] bg-brand-orange px-2 py-0.5 rounded text-white tracking-wider">ADMIN</span>
+                </div>
+            </div>
+
+
+            <nav class="space-y-1">
+                <a href="javascript:void(0)" onclick="switchTab('dashboard')" id="nav-dashboard"
+                    class="nav-item block py-3 px-4 rounded-xl hover:bg-white/10 transition flex items-center gap-3 nav-active">
+                    <div class="w-8 flex justify-center"><i class="fa-solid fa-chart-pie"></i></div>
+                    <span>ภาพรวม</span>
+                </a>
+                <a href="javascript:void(0)" onclick="switchTab('appointments')" id="nav-appointments"
+                    class="nav-item block py-3 px-4 rounded-xl hover:bg-white/10 transition flex items-center gap-3">
+                    <div class="w-8 flex justify-center"><i class="fa-solid fa-calendar-check"></i></div>
+                    <span class="flex-1">จัดการนัดหมาย</span>
+                    <span id="badge-pending"
+                        class="hidden bg-brand-orange text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+                </a>
+                <a href="javascript:void(0)" onclick="switchTab('patients')" id="nav-patients"
+                    class="nav-item block py-3 px-4 rounded-xl hover:bg-white/10 transition flex items-center gap-3">
+                    <div class="w-8 flex justify-center"><i class="fa-solid fa-users-medical"></i></div>
+                    <span>จัดการคนไข้</span>
+                </a>
+                <a href="javascript:void(0)" onclick="switchTab('doctors')" id="nav-doctors"
+                    class="nav-item block py-3 px-4 rounded-xl hover:bg-white/10 transition flex items-center gap-3">
+                    <div class="w-8 flex justify-center"><i class="fa-solid fa-user-doctor"></i></div>
+                    <span>แพทย์ & ตาราง</span>
+                </a>
+                <a href="javascript:void(0)" onclick="switchTab('news')" id="nav-news"
+                    class="nav-item block py-3 px-4 rounded-xl hover:bg-white/10 transition flex items-center gap-3">
+                    <div class="w-8 flex justify-center"><i class="fa-solid fa-newspaper"></i></div>
+                    <span>ข่าวสาร & แจ้งเตือน</span>
+                </a>
+            </nav>
+        </div>
+
+        <div class="p-4 border-t border-white/10 bg-[#1e4d85]">
+            <a href="javascript:void(0)" onclick="logout()"
+                class="block py-3 px-4 rounded-xl hover:bg-red-500/20 text-red-200 hover:text-red-100 transition flex items-center gap-3">
+                <i class="fa-solid fa-right-from-bracket w-6"></i> ออกจากระบบ
+            </a>
+        </div>
+    </aside>
+
+
+    <div class="flex-1 flex flex-col h-screen overflow-hidden relative opacity-0 transition-opacity duration-700"
+        id="main-content">
+
+        <header class="bg-white shadow-sm px-4 py-3 flex justify-between items-center z-40 md:px-8">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()"
+                    class="md:hidden text-brand-blue p-2 rounded-lg hover:bg-gray-100 transition">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <h2 class="text-lg font-bold text-brand-coffee md:hidden">Admin Panel</h2>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <div class="text-right hidden sm:block">
+                    <p class="text-sm font-bold text-brand-coffee" id="topbar-name">Admin User</p>
+                    <p class="text-xs text-gray-500">System Manager</p>
+                </div>
+                <div
+                    class="w-10 h-10 bg-brand-mint rounded-full flex items-center justify-center text-brand-blue border border-gray-200">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+            </div>
+        </header>
+
+
+        <main class="flex-1 overflow-x-hidden overflow-y-auto bg-brand-mint p-4 md:p-8 relative scroll-smooth">
+
+
+            <div id="tab-dashboard" class="space-y-6 max-w-7xl mx-auto">
+                <h2 class="text-2xl font-bold text-brand-coffee">ภาพรวมวันนี้</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                    <div
+                        class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+                        <div>
+                            <p class="text-gray-500 text-sm mb-1">รอการอนุมัติ</p>
+                            <h3 id="stat-pending" class="text-4xl font-bold text-brand-coffee">...</h3>
+                        </div>
+                        <div
+                            class="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center text-brand-orange text-2xl border border-orange-100">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+                        <div>
+                            <p class="text-gray-500 text-sm mb-1">นัดหมายวันนี้</p>
+                            <h3 id="stat-today" class="text-4xl font-bold text-brand-coffee">...</h3>
+                        </div>
+                        <div
+                            class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-brand-blue text-2xl border border-blue-100">
+                            <i class="fa-solid fa-calendar-day"></i>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+                        <div>
+                            <p class="text-gray-500 text-sm mb-1">แพทย์ปฏิบัติงาน</p>
+                            <h3 id="stat-doctors" class="text-4xl font-bold text-brand-coffee">...</h3>
+                        </div>
+                        <div
+                            class="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 text-2xl border border-green-100">
+                            <i class="fa-solid fa-user-doctor"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                    <h3 class="font-bold text-lg mb-4 text-brand-coffee">สถิติการจองสัปดาห์นี้</h3>
+                    <div class="h-64 w-full">
+                        <canvas id="bookingChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+
+            <div id="tab-appointments" class="hidden space-y-6 max-w-7xl mx-auto">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 class="text-2xl font-bold text-brand-coffee">จัดการนัดหมาย</h2>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="fetchAppointments('pending')"
+                            class="flex-1 sm:flex-none px-4 py-2 bg-brand-orange text-white rounded-xl shadow-sm hover:bg-opacity-90 transition active:scale-95">รออนุมัติ</button>
+                        <button onclick="fetchAppointments('all')"
+                            class="flex-1 sm:flex-none px-4 py-2 bg-white text-brand-coffee border border-gray-200 rounded-xl hover:bg-gray-50 transition active:scale-95">ทั้งหมด</button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-3xl shadow-sm overflow-hidden p-4 sm:p-0 border border-gray-100">
+                    <table class="w-full responsive-table text-left">
+                        <thead class="bg-gray-50 text-gray-500 border-b text-sm uppercase tracking-wider">
+                            <tr>
+                                <th class="p-4 font-medium">วันที่/เวลา</th>
+                                <th class="p-4 font-medium">คนไข้</th>
+                                <th class="p-4 font-medium">แพทย์ที่รับผิดชอบ</th>
+                                <th class="p-4 font-medium">สถานะ</th>
+                                <th class="p-4 text-center font-medium">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="appointment-list" class="divide-y divide-gray-100 text-sm sm:text-base"></tbody>
+                    </table>
+                </div>
+            </div>
+
+
+            <div id="tab-patients" class="hidden space-y-6 max-w-7xl mx-auto">
+                <div class="flex flex-col gap-4">
+                    <h2 class="text-2xl font-bold text-brand-coffee">จัดการคนไข้ & ประวัติ</h2>
+
+
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-2">
+                        <input type="text" id="patient-search-input" placeholder="ค้นหาชื่อ หรือ เบอร์โทร..."
+                            class="flex-1 p-2 border rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-blue/20">
+                        <button onclick="searchPatients()"
+                            class="px-6 py-2 bg-brand-blue text-white rounded-lg hover:bg-opacity-90 transition"><i
+                                class="fa-solid fa-search"></i> ค้นหา</button>
+                    </div>
+
+
+                    <div id="patient-results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+
+                    <div id="patient-history-view"
+                        class="hidden bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden relative mt-4">
+                        <div class="bg-brand-coffee text-white p-4 flex justify-between items-center">
+                            <h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-clipboard-user"></i>
+                                ประวัติข่าวสาร/การรักษา</h3>
+                            <button onclick="closePatientHistory()" class="text-white/80 hover:text-white"><i
+                                    class="fa-solid fa-xmark text-xl"></i></button>
+                        </div>
+                        <div class="p-6">
+
+                            <div class="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100">
+                                <img id="history-p-img" src=""
+                                    class="w-16 h-16 rounded-full border-2 border-brand-orange object-cover">
+                                <div>
+                                    <h4 id="history-p-name" class="text-xl font-bold text-brand-coffee">...</h4>
+                                    <p id="history-p-phone" class="text-sm text-gray-500">...</p>
+                                </div>
+                            </div>
+
+
+                            <div class="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                <label class="block text-sm font-bold text-gray-600 mb-2">เพิ่มบันทึกใหม่ /
+                                    ข่าวสารส่วนตัว</label>
+                                <textarea id="new-history-note" rows="2"
+                                    class="w-full p-3 border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue/20"
+                                    placeholder="พิมพ์ข้อความ..."></textarea>
+                                <div class="flex justify-end mt-2">
+                                    <button onclick="savePatientHistory()"
+                                        class="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-bold hover:bg-green-600 transition shadow-sm"><i
+                                            class="fa-solid fa-save"></i> บันทึก</button>
+                                </div>
+                            </div>
+
+
+                            <h4 class="font-bold text-gray-700 mb-3 text-sm uppercase tracking-wide">ประวัติย้อนหลัง
+                            </h4>
+                            <div id="history-list-container" class="space-y-3 max-h-[400px] overflow-y-auto pr-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div id="tab-doctors" class="hidden space-y-6 max-w-7xl mx-auto">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-brand-coffee">รายชื่อแพทย์</h2>
+                    <button onclick="openDoctorModal()"
+                        class="px-4 py-2 bg-brand-blue text-white rounded-xl shadow-sm hover:bg-opacity-90 gap-2 flex items-center transition active:scale-95 text-sm">
+                        <i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">เพิ่มแพทย์</span>
+                    </button>
+                </div>
+                <div id="doctor-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+
+
+            <div id="tab-news" class="hidden space-y-6 max-w-7xl mx-auto">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 class="text-2xl font-bold text-brand-coffee">ข่าวสาร & แจ้งเตือน</h2>
+                    <button onclick="handleCreateNewsClick()"
+                        class="w-full sm:w-auto px-6 py-2 bg-brand-blue text-white rounded-xl shadow-md hover:bg-opacity-90 gap-2 flex items-center justify-center transition active:scale-95 text-sm font-bold">
+                        <i class="fa-solid fa-pen-to-square"></i> สร้างประกาศ / ข่าวสาร
+                    </button>
+                </div>
+                <div id="news-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const LIFF_ID = "2010692253-05gwqcyB";
+        const SUPABASE_URL = "https://yexrmeidwedazbiaiazy.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlleHJtZWlkd2VkYXpiaWFpYXp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5NTUzMjEsImV4cCI6MjA5OTUzMTMyMX0.mABokSstxoizRDKK_UFCL6Zd52AqxfjSolKglWxokNk";
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+
+        let currentPatientId = null;
+
+
+        function formatThaiDate(dateString) {
+            if (!dateString) return '-';
+            const parts = dateString.split('-');
+            if (parts.length < 3) {
+                const datePart = dateString.split('T')[0];
+                const dParts = datePart.split('-');
+                if (dParts.length !== 3) return dateString;
+                const year = parseInt(dParts[0]) + 543;
+                const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+                return `${parseInt(dParts[2])} ${months[parseInt(dParts[1]) - 1]} ${year}`;
+            }
+            const year = parseInt(parts[0]) + 543;
+            const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            return `${parseInt(parts[2])} ${months[parseInt(parts[1]) - 1]} ${year}`;
+        }
+
+
+        async function initializeAdmin() {
+            try {
+                const loadTimeout = setTimeout(() => {
+                    const loader = document.getElementById('auth-loader');
+                    if (loader && !loader.classList.contains('hidden-opacity')) console.warn("Auth Timeout");
+                }, 8000);
+
+                await liff.init({ liffId: LIFF_ID, withLoginOnExternalBrowser: true });
+                await liff.ready;
+                clearTimeout(loadTimeout);
+
+                if (!liff.isLoggedIn()) { liff.login({ redirectUri: window.location.href }); return; }
+
+                const profile = await liff.getProfile();
+                const { data: userProfile, error } = await supabaseClient.from('profiles').select('role').eq('line_user_id', profile.userId).single();
+
+                if (error || !userProfile || userProfile.role !== 'admin') {
+                    document.getElementById('auth-loader').innerHTML = `<div class="text-center p-6"><i class="fa-solid fa-lock text-5xl mb-4 text-red-300"></i><h2 class="text-xl font-bold">สำหรับแอดมินเท่านัั้น</h2><p class="text-sm opacity-80 mt-2">ไม่มีสิทธิ์เข้าถึงส่วนผู้ดูแลระบบ</p></div>`;
+                    return;
+                }
+
+                document.getElementById('sidebar-img').src = profile.pictureUrl || 'https://via.placeholder.com/150';
+                document.getElementById('sidebar-name').innerText = profile.displayName;
+                document.getElementById('topbar-name').innerText = profile.displayName;
+
+                const loader = document.getElementById('auth-loader');
+                loader.classList.add('hidden-opacity');
+                setTimeout(() => loader.style.display = 'none', 500);
+                document.getElementById('main-content').classList.remove('opacity-0');
+                document.getElementById('main-content').classList.add('opacity-100');
+
+                initDashboard();
+            } catch (err) {
+                console.error("Auth Error:", err);
+                Swal.fire({ icon: 'error', title: 'เชื่อมต่อล้มเหลว', text: 'กรุณาลองใหม่' }).then((r) => { if (r.isConfirmed) window.location.reload() });
+            }
+        }
+
+        function logout() { liff.logout(); window.location.reload(); }
+
+
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            const backdrop = document.getElementById('mobile-backdrop');
+            if (sb.classList.contains('-translate-x-full')) {
+                sb.classList.remove('-translate-x-full'); backdrop.classList.remove('hidden');
+            } else {
+                sb.classList.add('-translate-x-full'); backdrop.classList.add('hidden');
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('main > div').forEach(div => div.classList.add('hidden'));
+            const target = document.getElementById(`tab-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('nav-active'));
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) activeNav.classList.add('nav-active');
+
+            if (tabId === 'dashboard') initDashboard();
+            if (tabId === 'appointments') fetchAppointments('all');
+            if (tabId === 'doctors') fetchDoctors();
+            if (tabId === 'news') fetchNews();
+
+
+            if (window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.add('-translate-x-full');
+                document.getElementById('mobile-backdrop').classList.add('hidden');
+            }
+        }
+
+
+        async function initDashboard() {
+            const today = new Date().toISOString().split('T')[0];
+
+            const { count: pendingCount } = await supabaseClient.from('appointments').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+            document.getElementById('stat-pending').innerText = pendingCount || 0;
+            const badge = document.getElementById('badge-pending');
+            if (pendingCount > 0) { badge.innerText = pendingCount; badge.classList.remove('hidden'); }
+            else { badge.classList.add('hidden'); }
+
+            const { count: todayCount } = await supabaseClient.from('appointments').select('*', { count: 'exact', head: true }).eq('appt_date', today).eq('status', 'confirmed');
+            document.getElementById('stat-today').innerText = todayCount || 0;
+
+            const { count: docCount } = await supabaseClient.from('doctors').select('*', { count: 'exact', head: true }).eq('is_active', true);
+            document.getElementById('stat-doctors').innerText = docCount || 0;
+
+            initChart();
+        }
+
+        async function initChart() {
+            const now = new Date();
+            const dayOfWeek = now.getDay();
+            const diffToMon = (dayOfWeek + 6) % 7;
+
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - diffToMon);
+            startOfWeek.setHours(0, 0, 0, 0);
+
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            endOfWeek.setHours(23, 59, 59, 999);
+
+            const startStr = startOfWeek.toISOString().split('T')[0];
+            const endStr = endOfWeek.toISOString().split('T')[0];
+
+            const { data, error } = await supabaseClient
+                .from('appointments')
+                .select('appt_date')
+                .gte('appt_date', startStr)
+                .lte('appt_date', endStr);
+
+            if (error) return;
+
+            const counts = [0, 0, 0, 0, 0, 0, 0];
+            data.forEach(item => {
+                const d = new Date(item.appt_date);
+                let dayIndex = (d.getDay() + 6) % 7;
+                counts[dayIndex]++;
+            });
+
+            const ctx = document.getElementById('bookingChart').getContext('2d');
+            if (window.myChart) window.myChart.destroy();
+
+            window.myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.'],
+                    datasets: [{
+                        label: 'จำนวนการจอง (คน)',
+                        data: counts,
+                        backgroundColor: '#2660a4',
+                        borderRadius: 6,
+                        barThickness: 20
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { stepSize: 1 } }, x: { grid: { display: false } } }
+                }
+            });
+        }
+
+
+        async function fetchAppointments(filter = 'all') {
+            Swal.fire({ title: 'กำลังโหลด...', didOpen: () => Swal.showLoading() });
+
+
+            let query = supabaseClient
+                .from('appointments')
+                .select(`*, profiles(display_name, phone_number)`)
+                .order('appt_date', { ascending: false });
+
+            if (filter === 'pending') query = query.eq('status', 'pending');
+
+            const { data: appointments, error } = await query;
+
+            if (error) {
+                Swal.close();
+                return console.error(error);
+            }
+
+
+            const { data: doctorsData } = await supabaseClient.from('doctors').select('id, name');
+            const doctorMap = {};
+            if (doctorsData) {
+                doctorsData.forEach(d => doctorMap[d.id] = d.name);
+            }
+
+            Swal.close();
+
+            const tbody = document.getElementById('appointment-list');
+            tbody.innerHTML = '';
+
+            if (!appointments || appointments.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-400">ไม่พบข้อมูลการนัดหมาย</td></tr>';
+                return;
+            }
+
+            appointments.forEach(appt => {
+                const patientName = appt.profiles?.display_name || 'Guest';
+                const phone = appt.profiles?.phone_number || '-';
+                const doctorName = doctorMap[appt.doctor_id] || '<span class="text-gray-400 italic">ยังไม่ระบุ</span>';
+
+                let statusBadge = '';
+                if (appt.status === 'pending') statusBadge = '<span class="inline-block px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-xs font-bold border border-orange-100">รออนุมัติ</span>';
+                else if (appt.status === 'confirmed') statusBadge = '<span class="inline-block px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-bold border border-green-100">อนุมัติ</span>';
+                else if (appt.status === 'completed') statusBadge = '<span class="inline-block px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-bold border border-green-100">สำเร็จ</span>';
+                else statusBadge = '<span class="inline-block px-3 py-1 bg-red-50 text-red-600 rounded-full text-xs font-bold border border-red-100">ยกเลิก</span>';
+
+                const actions = appt.status === 'pending' ? `
+                    <div class="flex gap-2 justify-center sm:justify-start">
+                        <button onclick="approveAppointment(${appt.id})" class="text-white bg-green-500 hover:bg-green-600 px-3 py-1 rounded-lg text-sm transition shadow-sm flex items-center gap-1"><i class="fa-solid fa-check"></i> อนุมัติ</button>
+                        <button onclick="updateStatus(${appt.id}, 'cancelled')" class="text-red-500 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg text-sm transition border border-red-100 flex items-center gap-1"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                ` : `<span class="text-gray-400 text-xs">-</span>`;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 border-b last:border-0 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-4" data-label="วันเวลา">
+                        <div class="flex flex-col"><span class="font-bold text-brand-coffee">${formatThaiDate(appt.appt_date)}</span><span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded w-fit mt-1">${appt.appt_time.slice(0, 5)} น.</span></div>
+                    </td>
+                    <td class="p-4" data-label="คนไข้">
+                        <div class="flex flex-col"><span class="font-bold text-gray-800">${patientName}</span><a href="tel:${phone}" class="text-xs text-brand-blue hover:underline mt-1"><i class="fa-solid fa-phone"></i> ${phone}</a></div>
+                    </td>
+                    <td class="p-4" data-label="อาการ/รายละเอียด">
+                        <div class="flex flex-col">
+                            <span class="text-sm text-gray-600 line-clamp-2">${appt.symptom_detail || '-'}</span>
+                            <span class="text-xs text-brand-blue mt-1 font-medium"><i class="fa-solid fa-user-doctor"></i> ${doctorName}</span>
+                        </div>
+                    </td>
+                    <td class="p-4" data-label="สถานะ">${statusBadge}</td>
+                    <td class="p-4 text-center sm:text-left" data-label="จัดการ">${actions}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function approveAppointment(apptId) {
+            const { data: doctors } = await supabaseClient.from('doctors').select('id, name').eq('is_active', true).order('name');
+
+            if (!doctors || doctors.length === 0) {
+                Swal.fire('ไม่พบแพทย์', 'ไม่มีแพทย์ปฏิบัติงานในขณะนี้', 'warning');
+                return;
+            }
+
+            const doctorOptions = {};
+            doctors.forEach(d => { doctorOptions[d.id] = d.name; });
+
+            const { value: doctorId } = await Swal.fire({
+                title: 'เลือกแพทย์ผู้รักษา',
+                input: 'select',
+                inputOptions: doctorOptions,
+                inputPlaceholder: 'กรุณาเลือกแพทย์',
+                showCancelButton: true,
+                confirmButtonText: 'ยืนยันและอนุมัติ',
+                confirmButtonColor: '#22c55e',
+                inputValidator: (value) => { if (!value) return 'คุณต้องเลือกแพทย์' }
+            });
+
+            if (doctorId) {
+                assignDoctorAndConfirm(apptId, doctorId);
+            }
+        }
+
+        async function assignDoctorAndConfirm(apptId, doctorId) {
+            Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+
+            const { error } = await supabaseClient.from('appointments').update({ status: 'confirmed', doctor_id: doctorId }).eq('id', apptId);
+
+            if (!error) {
+                Toast.fire({ icon: 'success', title: 'อนุมัติเรียบร้อย' });
+                fetchAppointments('all');
+                initDashboard();
+            } else {
+                Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
+            }
+        }
+
+        async function updateStatus(id, status) {
+            Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+            const { error } = await supabaseClient.from('appointments').update({ status }).eq('id', id);
+            if (!error) {
+                Toast.fire({ icon: 'success', title: 'อัปเดตสถานะเรียบร้อย' });
+                fetchAppointments('all');
+                initDashboard();
+            } else {
+                Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
+            }
+        }
+
+
+        async function searchPatients() {
+            const keyword = document.getElementById('patient-search-input').value;
+            if (!keyword) return;
+
+            Swal.fire({ title: 'กำลังค้นหา...', didOpen: () => Swal.showLoading() });
+            const { data: users, error } = await supabaseClient.from('profiles').select('*').or(`display_name.ilike.%${keyword}%,phone_number.ilike.%${keyword}%`).limit(20);
+            Swal.close();
+
+            const container = document.getElementById('patient-results');
+            container.innerHTML = '';
+            document.getElementById('patient-history-view').classList.add('hidden');
+
+            if (!users || users.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center text-gray-400 p-4">ไม่พบข้อมูล</div>';
+                return;
+            }
+
+            users.forEach(u => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition cursor-pointer";
+                card.onclick = () => openPatientHistory(u);
+                card.innerHTML = `
+                    <img src="${u.picture_url || 'https://via.placeholder.com/100'}" class="w-12 h-12 rounded-full border border-gray-200 object-cover">
+                    <div><h4 class="font-bold text-brand-coffee">${u.display_name}</h4><p class="text-xs text-gray-500">${u.phone_number || 'ไม่ระบุเบอร์'}</p></div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function openPatientHistory(user) {
+            currentPatientId = user.line_user_id;
+            document.getElementById('patient-history-view').classList.remove('hidden');
+            document.getElementById('patient-results').innerHTML = '';
+
+            document.getElementById('history-p-name').innerText = user.display_name;
+            document.getElementById('history-p-phone').innerText = user.phone_number || '-';
+            document.getElementById('history-p-img').src = user.picture_url || 'https://via.placeholder.com/100';
+
+            fetchPatientHistoryItems();
+        }
+
+        async function fetchPatientHistoryItems() {
+            const listContainer = document.getElementById('history-list-container');
+            listContainer.innerHTML = '<div class="text-center py-4"><i class="fa-solid fa-spinner fa-spin"></i> กำลังโหลด...</div>';
+
+            const { data: history, error } = await supabaseClient.from('notifications').select('*').eq('user_id', currentPatientId).eq('type', 'personal').order('created_at', { ascending: false });
+            listContainer.innerHTML = '';
+
+            if (error || !history || history.length === 0) {
+                listContainer.innerHTML = '<div class="text-gray-400 text-center py-4">ยังไม่มีประวัติ</div>';
+                return;
+            }
+
+            history.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "bg-gray-50 p-4 rounded-xl border border-gray-100 text-sm relative group";
+
+
+                const safeMessage = encodeURIComponent(item.message);
+
+                div.innerHTML = `
+                    <div class="pr-8 whitespace-pre-wrap">${item.message}</div>
+                    <div class="text-xs text-gray-400 mt-2 text-right">${formatThaiDate(item.created_at)}</div>
+                    <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="editPatientHistory(${item.id}, '${safeMessage}')" class="p-1.5 bg-white text-blue-500 rounded shadow hover:bg-blue-50"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deletePatientHistory(${item.id})" class="p-1.5 bg-white text-red-500 rounded shadow hover:bg-red-50"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+                listContainer.appendChild(div);
+            });
+        }
+
+        async function editPatientHistory(id, msgEncoded) {
+            const oldMsg = decodeURIComponent(msgEncoded);
+            const { value: newMsg } = await Swal.fire({
+                title: 'แก้ไขข้อมูล',
+                input: 'textarea',
+                inputLabel: 'รายละเอียด',
+                inputValue: oldMsg,
+                showCancelButton: true,
+                confirmButtonText: 'บันทึก',
+                confirmButtonColor: '#2660a4',
+                inputValidator: (value) => {
+                    if (!value) return 'กรุณาระบุข้อความ'
+                }
+            });
+
+            if (newMsg) {
+                Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+                const { error } = await supabaseClient.from('notifications').update({ message: newMsg }).eq('id', id);
+
+                if (!error) {
+                    Toast.fire({ icon: 'success', title: 'แก้ไขเรียบร้อย' });
+                    fetchPatientHistoryItems();
+                } else {
+                    Swal.fire('Error', error.message, 'error');
+                }
+            }
+        }
+
+        async function savePatientHistory() {
+            const input = document.getElementById('new-history-note');
+            const message = input.value.trim();
+            if (!message || !currentPatientId) return;
+
+            Swal.fire({ title: 'บันทึก...', didOpen: () => Swal.showLoading() });
+
+            const { error } = await supabaseClient.from('notifications').insert({
+                user_id: currentPatientId,
+                message: message,
+                type: 'personal',
+                status: 'unread'
+            });
+
+            if (!error) {
+                Toast.fire({ icon: 'success', title: 'บันทึกเรียบร้อย' });
+                input.value = '';
+                fetchPatientHistoryItems();
+            } else {
+                Swal.fire('Error', error.message, 'error');
+            }
+        }
+
+        async function deletePatientHistory(id) {
+            const result = await Swal.fire({ title: 'ยืนยันลบ?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ลบ' });
+            if (result.isConfirmed) {
+                await supabaseClient.from('notifications').delete().eq('id', id);
+                fetchPatientHistoryItems();
+            }
+        }
+
+        function closePatientHistory() {
+            document.getElementById('patient-history-view').classList.add('hidden');
+            currentPatientId = null;
+        }
+
+
+        async function fetchDoctors() {
+            const { data } = await supabaseClient.from('doctors').select('*').order('id');
+            const container = document.getElementById('doctor-list');
+            container.innerHTML = '';
+            data.forEach(doc => {
+                const activeClass = doc.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500';
+                const activeText = doc.is_active ? 'ปฏิบัติงาน' : 'พักงาน';
+
+                const lineIdStatus = doc.profile_id
+                    ? '<span class="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded ml-2 border border-green-100"><i class="fa-brands fa-line"></i> เชื่อมต่อแล้ว</span>'
+                    : '<span class="text-xs text-red-500 bg-red-50 px-2 py-0.5 rounded ml-2 border border-red-100"><i class="fa-solid fa-circle-exclamation"></i> ยังไม่เชื่อม LINE</span>';
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-4 relative hover:shadow-md transition";
+                card.innerHTML = `
+                    <img src="${doc.image_url || 'https://via.placeholder.com/150'}" class="w-16 h-16 rounded-full object-cover border-2 border-brand-mint bg-gray-100">
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-bold text-brand-coffee text-lg truncate">${doc.name}</h3>
+                        <p class="text-xs text-gray-500 mb-2 truncate">${doc.specialty}</p>
+                        <div class="mb-3">${lineIdStatus}</div>
+                        
+                        <div class="flex gap-2">
+                            <button onclick="toggleDoctorStatus(${doc.id}, ${!doc.is_active})" class="text-xs px-3 py-1.5 rounded-full font-bold ${activeClass} border transition flex items-center gap-2 w-fit">
+                                <i class="fa-solid fa-power-off"></i> ${activeText}
+                            </button>
+                            <button onclick="editDoctor(${doc.id}, '${encodeURIComponent(JSON.stringify(doc))}')" class="text-xs px-3 py-1.5 rounded-full font-bold bg-blue-50 text-blue-600 border border-blue-100 transition hover:bg-blue-100">
+                                <i class="fa-solid fa-pen"></i> แก้ไข
+                            </button>
+                        </div>
+                    </div>
+                    <button onclick="deleteDoctor(${doc.id})" class="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition p-2"><i class="fa-solid fa-trash-can"></i></button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function openDoctorModal() {
+            const { value: formValues } = await Swal.fire({
+                title: 'เพิ่มแพทย์ใหม่',
+                html: `
+                    <div class="text-left space-y-3">
+                        <div><label class="text-sm font-bold text-gray-600">ชื่อ-นามสกุล</label><input id="doc-name" class="w-full p-2 border rounded-lg" placeholder="เช่น นพ. สมชาย"></div>
+                        <div><label class="text-sm font-bold text-gray-600">ความเชี่ยวชาญ</label><input id="doc-spec" class="w-full p-2 border rounded-lg" placeholder="เช่น อายุรกรรม"></div>
+                        <div><label class="text-sm font-bold text-gray-600">รูปภาพ (URL)</label><input id="doc-img" class="w-full p-2 border rounded-lg" placeholder="https://..."></div>
+                        <div>
+                            <label class="text-sm font-bold text-gray-600">LINE User ID (สำหรับ Login)</label>
+                            <input id="doc-line-id" class="w-full p-2 border rounded-lg font-mono text-sm bg-gray-50" placeholder="Uxxxxxxxx...">
+                            <p class="text-[10px] text-gray-400 mt-1">*หาได้จากหน้า "จัดการคนไข้" หรือ Profile ของหมอ</p>
+                        </div>
+                    </div>`,
+                showCancelButton: true, confirmButtonText: 'บันทึก', confirmButtonColor: '#2660a4',
+                preConfirm: () => {
+                    return {
+                        name: document.getElementById('doc-name').value,
+                        specialty: document.getElementById('doc-spec').value,
+                        image_url: document.getElementById('doc-img').value,
+                        profile_id: document.getElementById('doc-line-id').value || null
+                    }
+                }
+            });
+            if (formValues) {
+
+                const { error } = await supabaseClient.from('doctors').insert(formValues);
+
+
+                if (!error && formValues.profile_id) {
+                    await supabaseClient.from('profiles').update({ role: 'doctor' }).eq('line_user_id', formValues.profile_id);
+                }
+
+                if (!error) { Toast.fire({ icon: 'success', title: 'เพิ่มข้อมูลสำเร็จ' }); fetchDoctors(); }
+                else { Swal.fire('Error', error.message, 'error'); }
+            }
+        }
+
+        async function editDoctor(id, docStr) {
+            const doc = JSON.parse(decodeURIComponent(docStr));
+            const { value: formValues } = await Swal.fire({
+                title: 'แก้ไขข้อมูลแพทย์',
+                html: `
+                    <div class="text-left space-y-3">
+                        <div><label class="text-sm font-bold text-gray-600">ชื่อ-นามสกุล</label><input id="edit-doc-name" class="w-full p-2 border rounded-lg" value="${doc.name}"></div>
+                        <div><label class="text-sm font-bold text-gray-600">ความเชี่ยวชาญ</label><input id="edit-doc-spec" class="w-full p-2 border rounded-lg" value="${doc.specialty || ''}"></div>
+                        <div><label class="text-sm font-bold text-gray-600">รูปภาพ (URL)</label><input id="edit-doc-img" class="w-full p-2 border rounded-lg" value="${doc.image_url || ''}"></div>
+                        <div>
+                            <label class="text-sm font-bold text-gray-600">LINE User ID</label>
+                            <input id="edit-doc-line-id" class="w-full p-2 border rounded-lg font-mono text-sm bg-gray-50" value="${doc.profile_id || ''}">
+                        </div>
+                    </div>`,
+                showCancelButton: true, confirmButtonText: 'บันทึก', confirmButtonColor: '#2660a4',
+                preConfirm: () => {
+                    return {
+                        name: document.getElementById('edit-doc-name').value,
+                        specialty: document.getElementById('edit-doc-spec').value,
+                        image_url: document.getElementById('edit-doc-img').value,
+                        profile_id: document.getElementById('edit-doc-line-id').value || null
+                    }
+                }
+            });
+
+            if (formValues) {
+                const { error } = await supabaseClient.from('doctors').update(formValues).eq('id', id);
+
+                if (!error && formValues.profile_id) {
+                    await supabaseClient.from('profiles').update({ role: 'doctor' }).eq('line_user_id', formValues.profile_id);
+                }
+
+                if (!error) { Toast.fire({ icon: 'success', title: 'แก้ไขเรียบร้อย' }); fetchDoctors(); }
+                else { Swal.fire('Error', error.message, 'error'); }
+            }
+        }
+
+        async function toggleDoctorStatus(id, isActive) {
+            await supabaseClient.from('doctors').update({ is_active: isActive }).eq('id', id);
+            fetchDoctors();
+        }
+
+        async function deleteDoctor(id) {
+            const result = await Swal.fire({ title: 'ยืนยันลบ?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444' });
+            if (result.isConfirmed) { await supabaseClient.from('doctors').delete().eq('id', id); fetchDoctors(); }
+        }
+
+
+        async function fetchNews() {
+            const { data } = await supabaseClient.from('news').select('*').order('created_at', { ascending: false });
+            const container = document.getElementById('news-list');
+            container.innerHTML = '';
+            if (!data) return;
+
+            data.forEach(news => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-3xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition group flex flex-col";
+                card.innerHTML = `
+                    <div class="h-40 bg-gray-200 bg-cover bg-center relative" style="background-image: url('${news.image_url || 'https://via.placeholder.com/300x150'}')">
+                        <button onclick="deleteNews(${news.id})" class="absolute top-3 right-3 bg-white/80 p-2 rounded-full text-red-500 hover:bg-white transition shadow-sm opacity-0 group-hover:opacity-100"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                    <div class="p-5 flex-1 flex flex-col">
+                        <h3 class="font-bold text-brand-coffee text-lg truncate">${news.title}</h3>
+                        <p class="text-sm text-gray-500 mt-2 line-clamp-2 h-10 mb-3">${news.detail || '-'}</p>
+                        <div class="mt-auto pt-3 border-t border-gray-50 text-right">
+                            <span class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded font-bold">Public News</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function handleCreateNewsClick() {
+            const { value: newsType } = await Swal.fire({
+                title: 'เลือกประเภทข่าวสาร',
+                input: 'radio',
+                inputOptions: { 'public': '📢 ข่าวสารทั่วไป (Public)', 'personal': '👤 ข่าวสารส่วนบุคคล (Private)' },
+                inputValidator: (value) => { if (!value) return 'กรุณาเลือกประเภท'; },
+                confirmButtonColor: '#2660a4',
+                confirmButtonText: 'ถัดไป'
+            });
+
+            if (newsType === 'public') openPublicNewsModal();
+            else if (newsType === 'personal') openPersonalNewsFlow();
+        }
+
+        async function openPublicNewsModal() {
+            const { value: formValues } = await Swal.fire({
+                title: 'เพิ่มข่าวสารทั่วไป',
+                html: `
+                    <div class="text-left space-y-3">
+                        <input id="news-title" class="w-full p-2 border rounded-lg" placeholder="หัวข้อข่าว">
+                        <textarea id="news-detail" class="w-full p-2 border rounded-lg" rows="3" placeholder="รายละเอียด"></textarea>
+                        <input id="news-img" class="w-full p-2 border rounded-lg" placeholder="URL รูปภาพ">
+                    </div>`,
+                showCancelButton: true, confirmButtonText: 'ประกาศ', confirmButtonColor: '#2660a4',
+                preConfirm: () => {
+                    return { title: document.getElementById('news-title').value, detail: document.getElementById('news-detail').value, image_url: document.getElementById('news-img').value }
+                }
+            });
+
+            if (formValues) {
+                await supabaseClient.from('news').insert(formValues);
+                Toast.fire({ icon: 'success', title: 'ประกาศแล้ว' }); fetchNews();
+            }
+        }
+
+        async function openPersonalNewsFlow() {
+            const { value: keyword } = await Swal.fire({ title: 'ค้นหาคนไข้', input: 'text', confirmButtonText: 'ค้นหา', confirmButtonColor: '#2660a4' });
+            if (!keyword) return;
+
+            Swal.fire({ title: 'ค้นหา...', didOpen: () => Swal.showLoading() });
+            const { data: users } = await supabaseClient.from('profiles').select('*').or(`display_name.ilike.%${keyword}%,phone_number.ilike.%${keyword}%`).limit(5);
+            Swal.close();
+
+            if (!users || users.length === 0) { Swal.fire('ไม่พบข้อมูล', '', 'info'); return; }
+
+            const inputOptions = {};
+            users.forEach(u => { inputOptions[u.line_user_id] = `${u.display_name} (${u.phone_number || '-'})`; });
+
+            const { value: selectedUserId } = await Swal.fire({ title: 'เลือกคนไข้', input: 'radio', inputOptions: inputOptions, confirmButtonColor: '#2660a4', confirmButtonText: 'ถัดไป' });
+            if (selectedUserId) openComposePersonalMessage(selectedUserId, inputOptions[selectedUserId]);
+        }
+
+        async function openComposePersonalMessage(userId, userName) {
+            const { value: msgData } = await Swal.fire({
+                title: 'ส่งข่าวสารถึง', text: userName,
+                html: `
+                    <div class="text-left space-y-3 mt-4">
+                        <input id="msg-title" class="w-full p-2 border rounded-lg" placeholder="หัวข้อ / เรื่อง">
+                        <textarea id="msg-detail" class="w-full p-2 border rounded-lg" rows="3" placeholder="รายละเอียด"></textarea>
+                        <input id="msg-img" class="w-full p-2 border rounded-lg" placeholder="URL รูปภาพ (ถ้ามี)">
+                        <div class="flex items-center gap-2 mt-2 pt-2 border-t">
+                            <input type="checkbox" id="msg-notify" class="w-5 h-5 accent-brand-blue">
+                            <label for="msg-notify" class="text-sm text-gray-700 cursor-pointer font-medium">ส่งแจ้งเตือนทาง LINE</label>
+                        </div>
+                    </div>`,
+                showCancelButton: true, confirmButtonText: 'บันทึก', confirmButtonColor: '#22c55e',
+                preConfirm: () => {
+                    return { title: document.getElementById('msg-title').value, detail: document.getElementById('msg-detail').value, image_url: document.getElementById('msg-img').value, isPush: document.getElementById('msg-notify').checked }
+                }
+            });
+
+            if (msgData) {
+                Swal.fire({ title: 'กำลังดำเนินการ...', didOpen: () => Swal.showLoading() });
+                const fullMessage = `**${msgData.title}**\n${msgData.detail || ''}`;
+                await supabaseClient.from('notifications').insert({ user_id: userId, message: fullMessage, type: 'personal', status: 'unread' });
+
+                if (msgData.isPush) {
+                    const flexContent = createFlexBubble(msgData.title, msgData.detail, msgData.image_url);
+                    await sendLineFlex([userId], flexContent);
+                } else {
+                    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', text: 'บันทึกประวัติเรียบร้อย (ไม่ได้ส่ง LINE)', confirmButtonColor: '#2660a4' });
+                }
+            }
+        }
+
+        async function sendLineFlex(targets, flexContent) {
+            try {
+                await supabaseClient.functions.invoke('notify-telegram', { body: { type: 'line_multicast', targets: targets, content: { type: 'flex', altText: 'ข่าวสารจากคลินิก', contents: flexContent } } });
+                Swal.fire({ icon: 'success', title: 'ส่ง LINE เรียบร้อย', confirmButtonColor: '#2660a4' });
+            } catch (err) { Swal.fire({ icon: 'error', title: 'ส่ง LINE ไม่สำเร็จ' }); }
+        }
+
+        function createFlexBubble(title, detail, imageUrl) {
+            const bubble = { type: "bubble", body: { type: "box", layout: "vertical", contents: [{ type: "text", text: title, weight: "bold", size: "xl", wrap: true }, { type: "text", text: detail || " ", size: "sm", color: "#666666", wrap: true, margin: "md" }] } };
+            if (imageUrl) { bubble.hero = { type: "image", url: imageUrl, size: "full", aspectRatio: "20:13", aspectMode: "cover" }; }
+            return bubble;
+        }
+
+        async function deleteNews(id) {
+            const result = await Swal.fire({ title: 'ยืนยันลบ?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444' });
+            if (result.isConfirmed) { await supabaseClient.from('news').delete().eq('id', id); fetchNews(); }
+        }
+
+        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, didOpen: (toast) => { toast.addEventListener('mouseenter', Swal.stopTimer); toast.addEventListener('mouseleave', Swal.resumeTimer); } });
+
+        window.onload = () => { setTimeout(initializeAdmin, 500); };
+    </script>
+</body>
+
+</html>
